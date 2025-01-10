@@ -17,7 +17,7 @@
 1. We use Gradescope for the code submission and grading.
 2. Please submit the completed "submission.v" file for each module to the corresponding assignment in Gradescope. DO NOT CHANGE THE FILENAME AND MODULENAME!
 
-**Due:** Jan. 21th 11:59PM EST
+**Due:** Jan. 13th 11:59PM EST
 
 **Grading Policy**:
 
