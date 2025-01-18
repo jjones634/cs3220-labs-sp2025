@@ -13,7 +13,7 @@ git clone https://github.com/gt-cs3220-new/cs3220-labs-sp2025.git
 
 Step 1: Change to the path of part0 and compile the verilog module of **adder_var_seq**. 
 ```
-cd cs3220-labs/lab1/part0
+cd cs3220-labs-sp2025/lab1/part0
 verilator --cc adder_var_seq.v --top-module adder_var_seq
 ```
 
