@@ -2,12 +2,14 @@
 
 // dummy implementation, please replace with your own
 module sequential_circuits ( 
-    input clk,    // Clocks are used in sequential circuits
-    input d,
-    output q );//
+    input wire clk,    // Clocks are used in sequential circuits
+    input wire d,
+    output reg q );//
 
 
 
-    assign q = d;
+    always@(posedge clk) begin
+        q <= d;
+    end
 
 endmodule

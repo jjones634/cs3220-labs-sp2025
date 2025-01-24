@@ -6,15 +6,30 @@ module module_hierarchy (
     input [31:0] a,
     input [31:0] b,
     output [31:0] sum
-);//
+);
+    
+    add16 low_bits (
+        .a(a[15:0]),
+        .b(b[15:0]),
+        .cin(0),          
+        .sum(sum[15:0]),
+        .cout()
+    );
 
-    assign sum = 32'd0;
+    
+    add16 high_bits (
+        .a(a[31:16]),
+        .b(b[31:16]),
+        .cin(cout),        
+        .sum(sum[31:16]),
+        .cout()
+    );
 
 endmodule
 
 module add1 ( input a, input b, input cin,   output sum, output cout );
 
-    assign sum = 1'b0;
-    assign cout = 1'b0;
+    assign sum = (a ^ b) ^ cin;
+    assign cout = (a & b) | (cin & (a ^ b));
 
 endmodule
