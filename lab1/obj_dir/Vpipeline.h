@@ -5,20 +5,23 @@
 // The class here is then constructed to instantiate the design.
 // See the Verilator manual for examples.
 
-#ifndef VERILATED_VADDER_VAR_SEQ_H_
-#define VERILATED_VADDER_VAR_SEQ_H_  // guard
+#ifndef VERILATED_VPIPELINE_H_
+#define VERILATED_VPIPELINE_H_  // guard
 
 #include "verilated.h"
+#include "svdpi.h"
 
-class Vadder_var_seq__Syms;
-class Vadder_var_seq___024root;
+class Vpipeline__Syms;
+class Vpipeline___024root;
 class VerilatedVcdC;
+class Vpipeline_pipeline;
+
 
 // This class is the main interface to the Verilated model
-class alignas(VL_CACHE_LINE_BYTES) Vadder_var_seq VL_NOT_FINAL : public VerilatedModel {
+class alignas(VL_CACHE_LINE_BYTES) Vpipeline VL_NOT_FINAL : public VerilatedModel {
   private:
     // Symbol table holding complete model state (owned by this class)
-    Vadder_var_seq__Syms* const vlSymsp;
+    Vpipeline__Syms* const vlSymsp;
 
   public:
 
@@ -26,32 +29,28 @@ class alignas(VL_CACHE_LINE_BYTES) Vadder_var_seq VL_NOT_FINAL : public Verilate
     // The application code writes and reads these signals to
     // propagate new values into/out from the Verilated model.
     VL_IN8(&clk,0,0);
-    VL_IN8(&rst_n,0,0);
-    VL_IN8(&i_valid,1,0);
-    VL_OUT8(&o_valid,0,0);
-    VL_IN8(&i_en,0,0);
-    VL_IN(&i_data,31,0);
-    VL_OUT(&o_data,16,0);
+    VL_IN8(&reset,0,0);
 
     // CELLS
     // Public to allow access to /* verilator public */ items.
     // Otherwise the application code can consider these internals.
+    Vpipeline_pipeline* const pipeline;
 
     // Root instance pointer to allow access to model internals,
     // including inlined /* verilator public_flat_* */ items.
-    Vadder_var_seq___024root* const rootp;
+    Vpipeline___024root* const rootp;
 
     // CONSTRUCTORS
     /// Construct the model; called by application code
     /// If contextp is null, then the model will use the default global context
     /// If name is "", then makes a wrapper with a
     /// single model invisible with respect to DPI scope names.
-    explicit Vadder_var_seq(VerilatedContext* contextp, const char* name = "TOP");
-    explicit Vadder_var_seq(const char* name = "TOP");
+    explicit Vpipeline(VerilatedContext* contextp, const char* name = "TOP");
+    explicit Vpipeline(const char* name = "TOP");
     /// Destroy the model; called (often implicitly) by application code
-    virtual ~Vadder_var_seq();
+    virtual ~Vpipeline();
   private:
-    VL_UNCOPYABLE(Vadder_var_seq);  ///< Copying not allowed
+    VL_UNCOPYABLE(Vpipeline);  ///< Copying not allowed
 
   public:
     // API METHODS

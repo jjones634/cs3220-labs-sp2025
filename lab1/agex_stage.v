@@ -88,12 +88,12 @@ module AGEX_STAGE(
       `SW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX; //possibly need to instead store in regval2 here?
       `JAL_I: begin
         aluout_AGEX = PC_AGEX + 4;
-        PC_AGEX = PC_AGEX + sxt_imm_AGEX; // update the PC here?
+        //PC_AGEX = PC_AGEX + sxt_imm_AGEX; // update the PC here?
       end
-      `JR_I: PC_AGEX = regval1_AGEX; //possible need to just use aluout_AGEX?
+      //`JR_I: PC_AGEX = regval1_AGEX; //possible need to just use aluout_AGEX?
       `JALR_I: begin
         aluout_AGEX = PC_AGEX + 4;
-        PC_AGEX = (regval1_AGEX + sxt_imm_AGEX) & 32'hfffffffe; // update the PC here?
+        //PC_AGEX = (regval1_AGEX + sxt_imm_AGEX) & 32'hfffffffe; // update the PC here?
       end
       `BEQ_I: aluout_AGEX = (regval1_AGEX == regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4; //possibly need to only be updating aluout_AGEX?
       `BNE_I: aluout_AGEX = (regval1_AGEX != regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
@@ -135,7 +135,7 @@ module AGEX_STAGE(
                                   wregno_AGEX
                                   } = from_DE_latch; 
     
- 
+ /* verilator lint_off WIDTHTRUNC */
   assign AGEX_latch_contents = {
                                 valid_AGEX,
                                 inst_AGEX,
@@ -152,6 +152,7 @@ module AGEX_STAGE(
                                 wr_reg_AGEX,
                                 wregno_AGEX
                                  }; 
+/* verilator lint_off WIDTHTRUNC */
  
   always @ (posedge clk ) begin
     if(reset) begin
@@ -172,6 +173,7 @@ module AGEX_STAGE(
   };
 
   // forward signals to DE stage
+  /* verilator lint_off WIDTHTRUNC */
   assign from_AGEX_to_DE = { 
     //  TODO: more signals might needed
     valid_AGEX,      
@@ -188,5 +190,6 @@ module AGEX_STAGE(
     aluout_AGEX,
     br_cond_AGEX     
   };
+  /* verilator lint_off WIDTHTRUNC */
 
 endmodule
