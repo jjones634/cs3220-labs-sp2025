@@ -83,7 +83,7 @@ module AGEX_STAGE(
       `SRLI_I: aluout_AGEX = regval1_AGEX >> sxt_imm_AGEX[4:0];
       `SLLI_I: aluout_AGEX = regval1_AGEX << sxt_imm_AGEX[4:0];
       `LUI_I: aluout_AGEX = {sxt_imm_AGEX[31:12], 12'b0};
-      `AUIPC_I: aluout_AGEX = PC_AGEX + {imm[31:12], 12'b0};
+      `AUIPC_I: aluout_AGEX = PC_AGEX + {sxt_imm_AGEX[31:12], 12'b0};
       `LW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
       `SW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX; //possibly need to instead store in regval2 here?
       `JAL_I: begin
