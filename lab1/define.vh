@@ -199,7 +199,7 @@
 `define UNUSED_PIN(x)  
 
 
-/** please update the following define with your own values */ 
+/** TODO: please update the following define with your own values */ 
 
  `define FE_latch_WIDTH  (1 + `INSTBITS+`DBITS+ `DBITS + `DBITS)
   `define DE_latch_WIDTH  (1 + `INSTBITS+`DBITS+`DBITS+ `IOPBITS + `DBITS + `DBITS + `DBITS + `DBITS + 1 + 1 + `REGNOBITS)

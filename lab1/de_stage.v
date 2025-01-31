@@ -381,7 +381,7 @@ end
   end
 
 
-always @ (posedge clk) begin // you need to expand this always block 
+always @ (posedge clk) begin
     if(reset) begin
       DE_latch <= {`DE_latch_WIDTH{1'b0}};
       end
