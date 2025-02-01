@@ -73,8 +73,6 @@ module FE_STAGE(
 
 
 
-  // **TODO: Complete the rest of the pipeline 
-  //assign stall_pipe_FE = 1;   // you need
   wire br_mispred_AGEX;  
   wire [`DBITS-1:0] br_target_AGEX;  
 
@@ -88,7 +86,6 @@ module FE_STAGE(
   } = from_AGEX_to_FE;
 
   always @ (posedge clk) begin
-  /* you need to extend this always block */
    if (reset) begin 
       PC_FE_latch <= `STARTPC;
       inst_count_FE <= 1;  /* inst_count starts from 1 for easy human reading. 1st fetch instructions can have 1 */ 
