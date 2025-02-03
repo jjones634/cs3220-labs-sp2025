@@ -54,6 +54,9 @@ module AGEX_STAGE(
       `BGE_I : br_cond_AGEX = ($signed(regval1_AGEX) >= $signed(regval2_AGEX));
       `BLTU_I: br_cond_AGEX = (regval1_AGEX < regval2_AGEX);
       `BGEU_I : br_cond_AGEX = (regval1_AGEX >= regval2_AGEX);
+      `JAL_I : br_cond_AGEX = 1'b1;
+      `JALR_I : br_cond_AGEX = 1'b1;
+      `JR_I : br_cond_AGEX = 1'b1;
       default : br_cond_AGEX = 1'b0;
     endcase
   end
@@ -67,40 +70,27 @@ module AGEX_STAGE(
       `AND_I: aluout_AGEX = regval1_AGEX & regval2_AGEX; 
       `OR_I:  aluout_AGEX = regval1_AGEX | regval2_AGEX; 
       `XOR_I: aluout_AGEX = regval1_AGEX ^ regval2_AGEX;
-      `SLT_I: aluout_AGEX = ($signed(regval1_AGEX) < $signed(regval2_AGEX)) ? 1 : 0; 
-      `SLTU_I: aluout_AGEX = (regval1_AGEX < regval2_AGEX) ? 1 : 0; 
-      `SLL_I: aluout_AGEX = regval1_AGEX << regval2_AGEX[4:0]; 
-      `SRL_I: aluout_AGEX = regval1_AGEX >> regval2_AGEX[4:0]; 
-      `SRA_I: aluout_AGEX = $signed(regval1_AGEX) >>> regval2_AGEX[4:0];
-      `MUL_I: aluout_AGEX = $signed(regval1_AGEX) * $signed(regval2_AGEX);
+      //`SLT_I: aluout_AGEX = ($signed(regval1_AGEX) < $signed(regval2_AGEX)) ? 1 : 0; 
+      //`SLTU_I: aluout_AGEX = (regval1_AGEX < regval2_AGEX) ? 1 : 0; 
+      //`SLL_I: aluout_AGEX = regval1_AGEX << regval2_AGEX[4:0]; 
+      //`SRL_I: aluout_AGEX = regval1_AGEX >> regval2_AGEX[4:0]; 
+      //`SRA_I: aluout_AGEX = $signed(regval1_AGEX) >>> regval2_AGEX[4:0];
+      //`MUL_I: aluout_AGEX = $signed(regval1_AGEX) * $signed(regval2_AGEX);
       `ADDI_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
       `ANDI_I: aluout_AGEX = regval1_AGEX & sxt_imm_AGEX;
       `ORI_I: aluout_AGEX = regval1_AGEX | sxt_imm_AGEX;
       `XORI_I: aluout_AGEX = regval1_AGEX ^ sxt_imm_AGEX;
-      `SLTI_I: aluout_AGEX = ($signed(regval1_AGEX) < sxt_imm_AGEX) ? 1 : 0;
-      `SLTIU_I: aluout_AGEX = (regval1_AGEX < sxt_imm_AGEX) ? 1 : 0;
-      `SRAI_I: aluout_AGEX = $signed(regval1_AGEX) >>> sxt_imm_AGEX[4:0];
-      `SRLI_I: aluout_AGEX = regval1_AGEX >> sxt_imm_AGEX[4:0];
-      `SLLI_I: aluout_AGEX = regval1_AGEX << sxt_imm_AGEX[4:0];
-      `LUI_I: aluout_AGEX = {sxt_imm_AGEX[31:12], 12'b0};
-      `AUIPC_I: aluout_AGEX = PC_AGEX + {sxt_imm_AGEX[31:12], 12'b0};
-      `LW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
-      `SW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX; //possibly need to instead store in regval2 here?
-      `JAL_I: begin
-        aluout_AGEX = PC_AGEX + 4;
-        //PC_AGEX = PC_AGEX + sxt_imm_AGEX; // update the PC here?
-      end
-      //`JR_I: PC_AGEX = regval1_AGEX; //possible need to just use aluout_AGEX?
-      `JALR_I: begin
-        aluout_AGEX = PC_AGEX + 4;
-        //PC_AGEX = (regval1_AGEX + sxt_imm_AGEX) & 32'hfffffffe; // update the PC here?
-      end
-      `BEQ_I: aluout_AGEX = (regval1_AGEX == regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4; //possibly need to only be updating aluout_AGEX?
-      `BNE_I: aluout_AGEX = (regval1_AGEX != regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
-      `BLT_I: aluout_AGEX = ($signed(regval1_AGEX) < $signed(regval2_AGEX)) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
-      `BGE_I: aluout_AGEX = ($signed(regval1_AGEX) >= $signed(regval2_AGEX)) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
-      `BLTU_I: aluout_AGEX = (regval1_AGEX < regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
-      `BGEU_I: aluout_AGEX = (regval1_AGEX >= regval2_AGEX) ? PC_AGEX + sxt_imm_AGEX : PC_AGEX + 4;
+      //`SLTI_I: aluout_AGEX = ($signed(regval1_AGEX) < sxt_imm_AGEX) ? 1 : 0;
+      //`SLTIU_I: aluout_AGEX = (regval1_AGEX < sxt_imm_AGEX) ? 1 : 0;
+      //`SRAI_I: aluout_AGEX = $signed(regval1_AGEX) >>> sxt_imm_AGEX[4:0];
+      //`SRLI_I: aluout_AGEX = regval1_AGEX >> sxt_imm_AGEX[4:0];
+      //`SLLI_I: aluout_AGEX = regval1_AGEX << sxt_imm_AGEX[4:0];
+      `LUI_I: aluout_AGEX = sxt_imm_AGEX; // if have to shift, {sxt_imm_AGEX[31:12], 12'b0}, otherwise sxt_imm_AGEX
+      `AUIPC_I: aluout_AGEX = PC_AGEX + sxt_imm_AGEX; // if have to shift, {sxt_imm_AGEX[31:12], 12'b0}, otherwise sxt_imm_AGEX
+      //`LW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
+      //`SW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
+      `JAL_I: aluout_AGEX = PC_AGEX + 4;
+      `JALR_I: aluout_AGEX = PC_AGEX + 4;
       default: aluout_AGEX = '0; 
     endcase
   end 
@@ -108,9 +98,15 @@ module AGEX_STAGE(
   // branch target needs to be computed here 
   // computed branch target needs to send to other pipeline stages (br_target_AGEX)
   // TODO: complete the code
-  always @(*)begin
+  always @(*) begin
     if (is_br_AGEX && br_cond_AGEX) begin
-      br_target_AGEX = PC_AGEX + sxt_imm_AGEX; 
+      if (op_I_AGEX == `JR_I) begin
+        br_target_AGEX = regval1_AGEX;
+      end else if (op_I_AGEX == `JALR_I) begin
+        br_target_AGEX = (regval1_AGEX + sxt_imm_AGEX) & 32'hfffffffe;
+      end else begin
+        br_target_AGEX = PC_AGEX + sxt_imm_AGEX; 
+      end
     end else begin
       br_target_AGEX = 0;
     end
@@ -144,13 +140,13 @@ module AGEX_STAGE(
                                 inst_count_AGEX,
                                        // TODO: more signals might needed
                                 aluout_AGEX,
-                                br_cond_AGEX,
-                                regval1_AGEX,
-                                regval2_AGEX,
-                                sxt_imm_AGEX,
-                                is_br_AGEX,
                                 wr_reg_AGEX,
                                 wregno_AGEX
+                                //br_cond_AGEX,
+                                //regval1_AGEX,
+                                //regval2_AGEX,
+                                //sxt_imm_AGEX,
+                                //is_br_AGEX,
                                  }; 
 /* verilator lint_off WIDTHTRUNC */
  
@@ -188,7 +184,7 @@ module AGEX_STAGE(
     wr_reg_AGEX,     
     wregno_AGEX,
     aluout_AGEX,
-    br_cond_AGEX     
+    br_cond_AGEX    
   };
   /* verilator lint_off WIDTHTRUNC */
 
