@@ -29,6 +29,7 @@ module AGEX_STAGE(
   reg br_cond_AGEX; // 1 means a branch condition is satisified. 0 means a branch condition is not satisifed
  
   /////////////////////////////////////////////////////////////////////////////
+  // TODO: Complete remaining code logic here!
 
   wire is_br_AGEX;
   wire wr_reg_AGEX;
