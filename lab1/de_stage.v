@@ -241,7 +241,6 @@ end
                       (op_I_DE == `ADDI_I) || 
                       (op_I_DE == `ANDI_I) ||
                       (op_I_DE == `SUB_I) ||
-                      (op_I_DE == `SUBI_I) ||
                       (op_I_DE == `LUI_I) ||
                       (op_I_DE == `AUIPC_I) ||
                       (op_I_DE == `JAL_I) ||

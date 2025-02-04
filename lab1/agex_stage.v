@@ -48,7 +48,7 @@ module AGEX_STAGE(
   // TODO: complete the code
   always @ (*) begin
     case (op_I_AGEX)
-      `BEQ_I : br_cond_AGEX = (regval1_AGEX == regval2_AGEX); // write correct code to check the branch condition. 
+      `BEQ_I : br_cond_AGEX = (regval1_AGEX == regval2_AGEX); // write code to check the branch condition. 
       `BNE_I : br_cond_AGEX = (regval1_AGEX != regval2_AGEX);
       `BLT_I : br_cond_AGEX = ($signed(regval1_AGEX) < $signed(regval2_AGEX));
       `BGE_I : br_cond_AGEX = ($signed(regval1_AGEX) >= $signed(regval2_AGEX));
@@ -76,10 +76,10 @@ module AGEX_STAGE(
       //`SRL_I: aluout_AGEX = regval1_AGEX >> regval2_AGEX[4:0]; 
       //`SRA_I: aluout_AGEX = $signed(regval1_AGEX) >>> regval2_AGEX[4:0];
       //`MUL_I: aluout_AGEX = $signed(regval1_AGEX) * $signed(regval2_AGEX);
-      `ADDI_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
-      `ANDI_I: aluout_AGEX = regval1_AGEX & sxt_imm_AGEX;
-      `ORI_I: aluout_AGEX = regval1_AGEX | sxt_imm_AGEX;
-      `XORI_I: aluout_AGEX = regval1_AGEX ^ sxt_imm_AGEX;
+      `ADDI_I: aluout_AGEX = regval1_AGEX + $signed(sxt_imm_AGEX);
+      `ANDI_I: aluout_AGEX = regval1_AGEX & $signed(sxt_imm_AGEX);
+      `ORI_I: aluout_AGEX = regval1_AGEX | $signed(sxt_imm_AGEX);
+      `XORI_I: aluout_AGEX = regval1_AGEX ^ $signed(sxt_imm_AGEX);
       //`SLTI_I: aluout_AGEX = ($signed(regval1_AGEX) < sxt_imm_AGEX) ? 1 : 0;
       //`SLTIU_I: aluout_AGEX = (regval1_AGEX < sxt_imm_AGEX) ? 1 : 0;
       //`SRAI_I: aluout_AGEX = $signed(regval1_AGEX) >>> sxt_imm_AGEX[4:0];
@@ -87,10 +87,10 @@ module AGEX_STAGE(
       //`SLLI_I: aluout_AGEX = regval1_AGEX << sxt_imm_AGEX[4:0];
       `LUI_I: aluout_AGEX = sxt_imm_AGEX; // if have to shift, {sxt_imm_AGEX[31:12], 12'b0}, otherwise sxt_imm_AGEX
       `AUIPC_I: aluout_AGEX = PC_AGEX + sxt_imm_AGEX; // if have to shift, {sxt_imm_AGEX[31:12], 12'b0}, otherwise sxt_imm_AGEX
-      //`LW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
+      //`LW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX; //potentially like this: aluout_AGEX = {regval1_AGEX[31:28], 28'b0};
       //`SW_I: aluout_AGEX = regval1_AGEX + sxt_imm_AGEX;
-      `JAL_I: aluout_AGEX = PC_AGEX + 4;
-      `JALR_I: aluout_AGEX = PC_AGEX + 4;
+      `JAL_I: aluout_AGEX = pcplus_AGEX;
+      `JALR_I: aluout_AGEX = pcplus_AGEX;
       default: aluout_AGEX = '0; 
     endcase
   end 
@@ -103,9 +103,9 @@ module AGEX_STAGE(
       if (op_I_AGEX == `JR_I) begin
         br_target_AGEX = regval1_AGEX;
       end else if (op_I_AGEX == `JALR_I) begin
-        br_target_AGEX = (regval1_AGEX + sxt_imm_AGEX) & 32'hfffffffe;
+        br_target_AGEX = (regval1_AGEX + $signed(sxt_imm_AGEX)) & 32'hfffffffe;
       end else begin
-        br_target_AGEX = PC_AGEX + sxt_imm_AGEX; 
+        br_target_AGEX = PC_AGEX + $signed(sxt_imm_AGEX); 
       end
     end else begin
       br_target_AGEX = 0;
