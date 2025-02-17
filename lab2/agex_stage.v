@@ -45,7 +45,35 @@ module AGEX_STAGE(
   reg [`DBITS-1:0] aluout_AGEX;
   reg [`DBITS-1:0] memaddr_AGEX;
   reg [`DBITS-1:0] br_target_AGEX;
-  wire br_mispred_AGEX;
+  reg br_mispred_AGEX; //changed from wire to reg, amybe revert
+
+  //branch predictor wires
+  wire [7:0] PHT_index;
+  wire [`DBITS-1:0] next_PC;
+
+  reg [7:0] BHR;
+  //reg [1:0] PHT [255:0];
+
+  reg [15:0] BTB_valid;
+  //reg [25:0] BTB_tag [15:0];
+  //reg [`DBITS-1:0] BTB_target [15:0];
+  wire [3:0] BTB_index;
+
+  reg [31:0] correct_predictions;
+  reg [31:0] total_branches;
+
+  // Initialize counters
+  always @ (posedge clk) begin
+    if (reset) begin
+      correct_predictions <= 32'b0;
+      total_branches <= 32'b0;
+    end else if (is_br_AGEX || is_jmp_AGEX) begin
+      total_branches <= total_branches + 1;
+      if ((br_cond_AGEX && (next_PC == br_target_AGEX)) || (!br_cond_AGEX && (next_PC == pcplus_AGEX))) begin
+        correct_predictions <= correct_predictions + 1;
+      end
+    end
+  end
 
   
   // Calculate branch condition
@@ -118,8 +146,64 @@ module AGEX_STAGE(
       br_target_AGEX = pcplus_AGEX;        
   end
 
-  assign br_mispred_AGEX = ((is_br_AGEX || is_jmp_AGEX) 
-                         && (br_target_AGEX != pcplus_AGEX)) ? 1 : 0;
+  // assign br_mispred_AGEX = ((is_br_AGEX || is_jmp_AGEX) 
+  //                        && (br_target_AGEX != pcplus_AGEX)) ? 1 : 0;
+  
+  // assign br_mispred_AGEX = (br_target_AGEX != next_PC)? 1:0 //new condition
+
+  // Check if the next instruction fetched in the FE stage is correct or not
+  /* verilator lint_off LATCH */
+  always @ (*) begin
+    if (is_br_AGEX || is_jmp_AGEX) begin
+      if (br_cond_AGEX && (next_PC != br_target_AGEX)) begin
+        // Branch taken but next instruction is not the branch target
+        br_mispred_AGEX = 1'b1;
+      end else if (!br_cond_AGEX && (next_PC != pcplus_AGEX)) begin
+        // Branch not taken but next instruction is not PC+4
+        br_mispred_AGEX = 1'b1;
+      end else begin
+        br_mispred_AGEX = 1'b0;
+      end
+    end else begin
+      br_mispred_AGEX = 1'b0;
+    end
+  end
+  /* verilator lint_off LATCH */
+
+  // Update BTB, PHT, and BHR
+always @ (posedge clk) begin
+  if (reset) begin
+    // Reset logic for BTB, PHT, and BHR
+    integer i;
+    for (i = 0; i < 16; i = i + 1) begin
+      BTB_valid[i] <= 1'b0;
+      BTB_tag[i] <= 26'b0;
+      BTB_target[i] <= `DBITS'b0;
+    end
+    for (i = 0; i < 256; i = i + 1) begin
+      PHT[i] = 2'b01; // weakly not taken
+    end
+    BHR <= 8'b0;
+  end else if (is_br_AGEX || is_jmp_AGEX) begin
+    // Update BTB
+    BTB_valid[BTB_index] <= 1'b1;
+    BTB_tag[BTB_index] <= PC_AGEX[31:6];
+    BTB_target[BTB_index] <= br_target_AGEX;
+
+    // Update PHT
+    if (br_cond_AGEX) begin
+      if (PHT[PHT_index] < 2'b11) begin
+        PHT[PHT_index] <= PHT[PHT_index] + 1;
+      end
+    end else begin
+      if (PHT[PHT_index] > 2'b00) begin
+        PHT[PHT_index] <= PHT[PHT_index] - 1;
+      end
+    end
+    // Update BHR
+    BHR <= {BHR[6:0], br_cond_AGEX};
+  end
+end
 
     assign  {                     
                                   valid_AGEX,
@@ -169,8 +253,13 @@ module AGEX_STAGE(
 
   // forward signals to FE stage
   assign from_AGEX_to_FE = { 
-    br_mispred_AGEX, 
-    br_target_AGEX
+    br_mispred_AGEX,
+    br_target_AGEX,
+    PHT_index, //added for execution use
+    next_PC,
+    BTB_valid, //even further additions
+    BHR,
+    BTB_index
   };
 
   // forward signals to DE stage
