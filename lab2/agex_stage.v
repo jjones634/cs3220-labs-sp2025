@@ -6,6 +6,7 @@ module AGEX_STAGE(
   input wire [`from_MEM_to_AGEX_WIDTH-1:0] from_MEM_to_AGEX,    
   input wire [`from_WB_to_AGEX_WIDTH-1:0] from_WB_to_AGEX,   
   input wire [`DE_latch_WIDTH-1:0] from_DE_latch,
+  input wire [`FE_latch_WIDTH-1:0] from_FE_latch, //added for next_PC
   output wire [`AGEX_latch_WIDTH-1:0] AGEX_latch_out,
   output wire [`from_AGEX_to_FE_WIDTH-1:0] from_AGEX_to_FE,
   output wire [`from_AGEX_to_DE_WIDTH-1:0] from_AGEX_to_DE
@@ -47,20 +48,21 @@ module AGEX_STAGE(
   reg [`DBITS-1:0] br_target_AGEX;
   reg br_mispred_AGEX; //changed from wire to reg, amybe revert
 
-  //branch predictor wires
-  wire [7:0] PHT_index;
-  wire [`DBITS-1:0] next_PC;
-
-  reg [7:0] BHR;
-  //reg [1:0] PHT [255:0];
-
-  reg [15:0] BTB_valid;
-  //reg [25:0] BTB_tag [15:0];
-  //reg [`DBITS-1:0] BTB_target [15:0];
-  wire [3:0] BTB_index;
-
   reg [31:0] correct_predictions;
   reg [31:0] total_branches;
+
+  //stuff from FE latch, only next_pc matters
+  wire valid_FE;
+  `UNUSED_VAR(valid_FE)
+  wire [`INSTBITS-1:0] inst_FE;
+  `UNUSED_VAR(inst_FE)
+  reg [`DBITS-1:0] PC_FE_latch;
+  `UNUSED_VAR(PC_FE_latch)
+  wire [`DBITS-1:0] pcplus_FE;
+  `UNUSED_VAR(pcplus_FE)
+  wire [`DBITS-1:0] inst_count_FE;
+  `UNUSED_VAR(inst_count_FE)
+  wire [`DBITS-1:0] next_PC;
 
   // Initialize counters
   always @ (posedge clk) begin
@@ -69,7 +71,7 @@ module AGEX_STAGE(
       total_branches <= 32'b0;
     end else if (is_br_AGEX || is_jmp_AGEX) begin
       total_branches <= total_branches + 1;
-      if ((br_cond_AGEX && (next_PC == br_target_AGEX)) || (!br_cond_AGEX && (next_PC == pcplus_AGEX))) begin
+      if (!br_mispred_AGEX) begin
         correct_predictions <= correct_predictions + 1;
       end
     end
@@ -86,6 +88,10 @@ module AGEX_STAGE(
     `BGE_I : br_cond_AGEX = ($signed(regval1_AGEX) >= $signed(regval2_AGEX));
     `BLTU_I: br_cond_AGEX = (regval1_AGEX < regval2_AGEX);
     `BGEU_I: br_cond_AGEX = (regval1_AGEX >= regval2_AGEX);
+    //add jump cases
+    `JAL_I : br_cond_AGEX = 1'b1; // unconditional jump
+    `JALR_I: br_cond_AGEX = 1'b1; // unconditional jump
+    `JR_I  : br_cond_AGEX = 1'b1; // unconditional jump
     default: br_cond_AGEX = 1'b0;
     endcase
   end
@@ -149,61 +155,42 @@ module AGEX_STAGE(
   // assign br_mispred_AGEX = ((is_br_AGEX || is_jmp_AGEX) 
   //                        && (br_target_AGEX != pcplus_AGEX)) ? 1 : 0;
   
-  // assign br_mispred_AGEX = (br_target_AGEX != next_PC)? 1:0 //new condition
+  assign br_mispred_AGEX = ( (is_br_AGEX || is_jmp_AGEX) && (br_target_AGEX != next_PC))? 1:0; //new condition
 
-  // Check if the next instruction fetched in the FE stage is correct or not
-  /* verilator lint_off LATCH */
-  always @ (*) begin
-    if (is_br_AGEX || is_jmp_AGEX) begin
-      if (br_cond_AGEX && (next_PC != br_target_AGEX)) begin
-        // Branch taken but next instruction is not the branch target
-        br_mispred_AGEX = 1'b1;
-      end else if (!br_cond_AGEX && (next_PC != pcplus_AGEX)) begin
-        // Branch not taken but next instruction is not PC+4
-        br_mispred_AGEX = 1'b1;
-      end else begin
-        br_mispred_AGEX = 1'b0;
-      end
-    end else begin
-      br_mispred_AGEX = 1'b0;
-    end
-  end
-  /* verilator lint_off LATCH */
+// always @ (posedge clk) begin
+//   if (reset) begin
+//     // Reset logic for BTB, PHT, and BHR
+//     integer i;
+//     for (i = 0; i < 16; i = i + 1) begin
+//       BTB_valid[i] <= 1'b0;
+//       BTB_tag[i] <= 26'b0;
+//       BTB_target[i] <= `DBITS'b0;
+//     end
+//     for (i = 0; i < 256; i = i + 1) begin
+//       PHT[i] = 2'b01; // weakly not taken
+//     end
+//     BHR <= 8'b0;
+//   end else if (is_br_AGEX || is_jmp_AGEX) begin
+//     // Update BTB
+//     BTB_valid[BTB_index] <= 1'b1;
+//     BTB_tag[BTB_index] <= PC_AGEX[31:6];
+//     BTB_target[BTB_index] <= br_target_AGEX;
 
-  // Update BTB, PHT, and BHR
-always @ (posedge clk) begin
-  if (reset) begin
-    // Reset logic for BTB, PHT, and BHR
-    integer i;
-    for (i = 0; i < 16; i = i + 1) begin
-      BTB_valid[i] <= 1'b0;
-      BTB_tag[i] <= 26'b0;
-      BTB_target[i] <= `DBITS'b0;
-    end
-    for (i = 0; i < 256; i = i + 1) begin
-      PHT[i] = 2'b01; // weakly not taken
-    end
-    BHR <= 8'b0;
-  end else if (is_br_AGEX || is_jmp_AGEX) begin
-    // Update BTB
-    BTB_valid[BTB_index] <= 1'b1;
-    BTB_tag[BTB_index] <= PC_AGEX[31:6];
-    BTB_target[BTB_index] <= br_target_AGEX;
+//     // Update PHT
+//     if (br_cond_AGEX) begin
+//       if (PHT[PHT_index] < 2'b11) begin
+//         PHT[PHT_index] <= PHT[PHT_index] + 1;
+//       end
+//     end else begin
+//       if (PHT[PHT_index] > 2'b00) begin
+//         PHT[PHT_index] <= PHT[PHT_index] - 1;
+//       end
+//     end
+//     // Update BHR
+//     BHR <= {BHR[6:0], br_cond_AGEX};
+//   end
+// end
 
-    // Update PHT
-    if (br_cond_AGEX) begin
-      if (PHT[PHT_index] < 2'b11) begin
-        PHT[PHT_index] <= PHT[PHT_index] + 1;
-      end
-    end else begin
-      if (PHT[PHT_index] > 2'b00) begin
-        PHT[PHT_index] <= PHT[PHT_index] - 1;
-      end
-    end
-    // Update BHR
-    BHR <= {BHR[6:0], br_cond_AGEX};
-  end
-end
 
     assign  {                     
                                   valid_AGEX,
@@ -223,6 +210,15 @@ end
                                   wr_reg_AGEX,
                                   wregno_AGEX
                                   } = from_DE_latch; 
+
+  assign  {                     
+                                valid_FE, 
+                                inst_FE, 
+                                PC_FE_latch, 
+                                pcplus_FE,
+                                inst_count_FE, 
+                                next_PC
+                                  } = from_FE_latch;
     
  
   assign AGEX_latch_contents = {
@@ -255,11 +251,10 @@ end
   assign from_AGEX_to_FE = { 
     br_mispred_AGEX,
     br_target_AGEX,
-    PHT_index, //added for execution use
-    next_PC,
-    BTB_valid, //even further additions
-    BHR,
-    BTB_index
+    PC_AGEX, //added for execution use
+    is_br_AGEX,
+    is_jmp_AGEX,
+    br_cond_AGEX
   };
 
   // forward signals to DE stage

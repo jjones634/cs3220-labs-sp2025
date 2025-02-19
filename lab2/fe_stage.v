@@ -65,9 +65,9 @@ module FE_STAGE(
                                 inst_FE, 
                                 PC_FE_latch, 
                                 pcplus_FE, // please feel free to add more signals such as valid bits etc. 
-                                inst_count_FE
+                                inst_count_FE,
                                  // if you add more bits here, please increase the width of latch in VX_define.vh 
-                                
+                                next_PC
                                 };
 
 
@@ -81,12 +81,14 @@ module FE_STAGE(
   // branch preditor logic
   reg [7:0] BHR;
 
-  //reg [1:0] PHT [255:0];
-
   // Branch Target Buffer (BTB) - 16 entries
   reg [15:0] BTB_valid;
-  //reg [25:0] BTB_tag [15:0];
-  //reg [`DBITS-1:0] BTB_target [15:0];
+
+  //stuff new stuff from agex
+  wire [`DBITS-1:0]PC_AGEX;
+  wire is_br_AGEX;
+  wire is_jmp_AGEX;
+  reg br_cond_AGEX;
 
   // init PHT and BTB
   initial begin
@@ -106,9 +108,6 @@ module FE_STAGE(
   wire [7:0] PHT_index = PC_FE_latch[9:2] ^ BHR; 
   wire [3:0] BTB_index = PC_FE_latch[5:2];
   wire [25:0] BTB_tag_value = PC_FE_latch[31:6]; 
-  // reg [7:0] PHT_index;
-  // reg [3:0] BTB_index;
-  // reg [25:0] BTB_tag_value;
 
   // BTB hit and PHT prediction
   wire BTB_hit = BTB_valid[BTB_index] && (BTB_tag[BTB_index] == BTB_tag_value);
@@ -116,22 +115,55 @@ module FE_STAGE(
   wire PHT_prediction = PHT_counter[1]; // MSB of the counter
 
   // Next PC based on BTB and PHT
-  wire [`DBITS-1:0] next_PC = (BTB_hit && PHT_prediction) ? BTB_target[BTB_index] : pcplus_FE; 
-  // reg [`DBITS-1:0] next_PC;
+  wire [`DBITS-1:0] next_PC = (BTB_hit && PHT_prediction) ? BTB_target[BTB_index] : pcplus_FE;
+  //assign next_PC = (BTB_hit && PHT_prediction) ? BTB_target[BTB_index] : pcplus_FE;
 
-  // always @ (posedge clk) begin
-  //   if (reset) begin
-  //     PHT_index = 8'b0;
-  //     BTB_index = 4'b0;
-  //     BTB_tag_value = 26'b0;
-  //     next_PC = `STARTPC;
-  //   end else begin
-  //     PHT_index = PC_FE_latch[9:2] ^ BHR;
-  //     BTB_index = PC_FE_latch[5:2];
-  //     BTB_tag_value = PC_FE_latch[31:6];
-  //     next_PC = (BTB_hit && PHT_prediction) ? BTB_target[BTB_index] : pcplus_FE;
-  //   end
-  // end
+  // Update BTB, PHT, and BHR
+always @ (posedge clk) begin
+  if (reset) begin
+    // Reset logic for BTB, PHT, and BHR
+    integer i;
+    for (i = 0; i < 16; i = i + 1) begin
+      BTB_valid[i] <= 1'b0;
+      BTB_tag[i] <= 26'b0;
+      BTB_target[i] <= `DBITS'b0;
+    end
+    for (i = 0; i < 256; i = i + 1) begin
+      PHT[i] = 2'b01; // weakly not taken
+    end
+    BHR <= 8'b0;
+  end else if (is_br_AGEX || is_jmp_AGEX) begin
+    // Update BTB
+    BTB_valid[PC_AGEX[5:2]] <= 1'b1;
+    BTB_tag[PC_AGEX[5:2]] <= PC_AGEX[31:6];
+    BTB_target[PC_AGEX[5:2]] <= br_target_AGEX;
+
+    // Update PHT (old)
+    // if (br_cond_AGEX) begin
+    //   if (PHT[PC_AGEX[9:2] ^ BHR] < 2'b11) begin
+    //     PHT[PC_AGEX[9:2] ^ BHR] <= PHT[PC_AGEX[9:2] ^ BHR] + 1;
+    //   end
+    // end else begin
+    //   if (PHT[PC_AGEX[9:2] ^ BHR] > 2'b00) begin
+    //     PHT[PC_AGEX[9:2] ^ BHR] <= PHT[PC_AGEX[9:2] ^ BHR] - 1;
+    //   end
+    // end
+
+    // Update PHT (new)
+    if (br_mispred_AGEX && !is_jmp_AGEX && (PHT[PC_AGEX[9:2] ^ BHR] > 2'b00)) begin
+      PHT[PC_AGEX[9:2] ^ BHR] <= PHT[PC_AGEX[9:2] ^ BHR] - 1;
+    end
+    else if ((!br_mispred_AGEX && !is_jmp_AGEX) && (PHT[PC_AGEX[9:2] ^ BHR] < 2'b11)) begin
+      PHT[PC_AGEX[9:2] ^ BHR] <= PHT[PC_AGEX[9:2] ^ BHR] + 1;
+    end
+    else if (is_jmp_AGEX && (PHT[PC_AGEX[9:2] ^ BHR] < 2'b11)) begin
+      PHT[PC_AGEX[9:2] ^ BHR] <= 2'b11;
+    end
+
+    // Update BHR
+    BHR <= {BHR[6:0], br_cond_AGEX};
+  end
+end
   
 
   assign {
@@ -141,11 +173,10 @@ module FE_STAGE(
   assign {
     br_mispred_AGEX,
     br_target_AGEX,
-    PHT_index, //added for execution use
-    next_PC,
-    BTB_valid, //even further additions
-    BHR,
-    BTB_index
+    PC_AGEX, //added for execution use
+    is_br_AGEX,
+    is_jmp_AGEX,
+    br_cond_AGEX
   } = from_AGEX_to_FE;
 
   always @ (posedge clk) begin
