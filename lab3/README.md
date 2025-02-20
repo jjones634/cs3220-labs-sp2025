@@ -22,8 +22,8 @@ The [external ALU](external_alu_wrapper.v) has following specifications:
 * `OP1` and `OP2` are 32-bit inputs that specify the values to be used as operands for the ALU operation. (Floating point numbers in IEEE 754 format)
 * `OP3` is a 32-bit output that holds the result of the ALU operation. (Floating point numbers in IEEE 754 format)
 * `ALUOP` is a 4-bit input that specifies the ALU operation to be performed. The ALUOP values are as follows:
-    * 0001: MULT
-    * 0010: DIV
+    * 0001: DIV
+    * 0010: MULT
     <!-- * `ALUOP[3]` is a 1-bit input that specifies whether the ALU operation is signed or unsigned. If `ALUOP[3]` is 0, the operation is unsigned; if `ALUOP[3]` is 1, the operation is signed. -->
 * `CSR_ALU_OUT` (Control/Status Register) is a 3-bit input port that represents the status of the ALU operation. The `CSR_ALU_OUT` values are as follows:
     * `CSR_ALU_OUT`[0] is a 1-bit output that signals if the ALU OP1 port is READY/BUSY
