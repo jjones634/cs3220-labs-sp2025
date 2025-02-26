@@ -34,7 +34,9 @@ The [external ALU](external_alu_wrapper.v) has following specifications:
         * 1: VALID; 0: INVALID
 * `CSR_ALU_IN` is a 3-bit output that control the status of the ALU operation. The `CSR_ALU_IN` values are as follows:
     * `CSR_ALU_IN`[0] is a 1-bit input that signals the the results can be overwritten by the ALU.
-        * After reading the output, the CPU should set `CSR_ALU_IN`[0] to 0, indicating it's safe for ALU to overwrite the results; otherwise, the ALU will stall the current operation of writing the result to OP3.
+        * It acknowledge the ALU that the output is received and can be overwritten in following cycles
+        * After reading the output, you may also want to set `CSR_ALU_IN`[0] back to 0, so you can catch the results when it's stable
+        * reference: [divider.v](divider.v#L294)
     * `CSR_ALU_IN`[1] is a 1-bit input that signals the `OP1` fed to the ALU is stable
         * If it's set to 1, the ALU will latch in the `OP1` value; otherwise, the ALU will stall the current operation and wait for `OP1` to be stable.
         * It's ignored if the ALU is not ready to accept `OP1`.
