@@ -11,7 +11,8 @@ module DE_STAGE(
   output wire [`from_DE_to_FE_WIDTH-1:0]  from_DE_to_FE,
   input wire [`from_FU_to_DE_WIDTH-1:0]   from_FU_to_DE,
   output wire [`from_DE_to_FU_WIDTH-1:0]  from_DE_to_FU,   
-  output wire [`DE_latch_WIDTH-1:0]       DE_latch_out
+  output wire [`DE_latch_WIDTH-1:0]       DE_latch_out,
+  output wire                             stall_value
 );
 
   `UNUSED_VAR (from_MEM_to_DE)
@@ -315,7 +316,12 @@ module DE_STAGE(
                          || (use_rs2_DE && in_use_regs[rs2_DE]);
 
   //TODO: part2/bonus modify as necessary
-  assign pipeline_stall_DE = has_data_hazards || br_mispred_AGEX;
+  assign pipeline_stall_DE = has_data_hazards || br_mispred_AGEX || ALU_stall_DE;
+  wire ALU_stall_DE;
+  assign ALU_stall_DE = (((state == LOAD_OP1 && !CSR_ALU_OUT[0]) //added for stalling
+                         || (state == LOAD_OP2 && !CSR_ALU_OUT[1])
+                         || (state == WAIT_TILL_DONE && !CSR_ALU_OUT[2]))
+                         && !(op_I_WB == `ADDI_I && wregno_WB == 0)); //if NOP is happening, stall is false
 
   always @(posedge clk) begin
     if (reset) begin
@@ -430,7 +436,7 @@ module DE_STAGE(
   always @(posedge clk or posedge reset) begin
     if (reset) begin
       state <= LOAD_ALUOP;
-    end else begin
+    end else if (!ALU_stall_DE) begin
       state <= next_state;
     end
   end
@@ -454,6 +460,8 @@ module DE_STAGE(
           OP1 = regval_WB;
           CSR_ALU_IN[1] = 1; // ALU OP1 is stable
           next_state = LOAD_OP2;
+        end else if (!CSR_ALU_OUT[0]) begin
+          next_state = LOAD_OP1; // Stall if ALU is not ready for OP1
         end
       end
       LOAD_OP2: begin
@@ -463,12 +471,16 @@ module DE_STAGE(
           OP2 = regval_WB;
           CSR_ALU_IN[2] = 1; //OP2 is stable
           next_state = WAIT_TILL_DONE;
+        end else if (!CSR_ALU_OUT[1]) begin
+          next_state = LOAD_OP2; // Stall if ALU is not ready for OP2
         end
       end
       WAIT_TILL_DONE: begin
         if (CSR_ALU_OUT[2]) begin // Wait until ALU result is valid
           CSR_ALU_IN[0] = 1; // ALU result is valid
           next_state = STORE_OP3;
+        end else begin
+          next_state = WAIT_TILL_DONE; // Stall if ALU result is not valid
         end
       end
       STORE_OP3: begin
@@ -487,22 +499,8 @@ module DE_STAGE(
     endcase
   end
 
-  // Update CSR_ALU_IN based on ALU status
-  // always @(posedge clk) begin
-  //   CSR_ALU_IN = 3'b000;
-  //   if (CSR_ALU_OUT[2]) begin
-  //     CSR_ALU_IN[0] = 1; // ALU result is valid
-  //   end
-  //   if (CSR_ALU_OUT[1]) begin
-  //     CSR_ALU_IN[2] = 1; // ALU OP2 is stable
-  //   end
-  //   if (CSR_ALU_OUT[0]) begin
-  //     CSR_ALU_IN[1] = 1; // ALU OP1 is stable
-  //   end
-  //   // if (wr_reg_WB && (wregno_WB == `OP1_REG_IDX || wregno_WB == `OP2_REG_IDX)) begin
-  //   //   CSR_ALU_IN[1] = 0; // ALU OP1 is not stable if writeback happens
-  //   //   CSR_ALU_IN[2] = 0; // ALU OP2 is not stable if writeback happens
-  //   // end
-  // end 
+  assign stall_value = {
+    ALU_stall_DE
+  };
 
 endmodule

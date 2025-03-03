@@ -8,7 +8,8 @@ module MEM_STAGE(
   output wire [`MEM_latch_WIDTH-1:0]      MEM_latch_out,
   output wire [`from_MEM_to_FE_WIDTH-1:0] from_MEM_to_FE,
   output wire [`from_MEM_to_DE_WIDTH-1:0] from_MEM_to_DE,
-  output wire [`from_WB_to_AGEX_WIDTH-1:0] from_MEM_to_AGEX
+  output wire [`from_WB_to_AGEX_WIDTH-1:0] from_MEM_to_AGEX,
+  input wire                              stall_value
 );
   //TODO: part2/bonus modify as necessary
   `UNUSED_VAR (from_WB_to_MEM)
@@ -77,11 +78,15 @@ module MEM_STAGE(
   }; 
 
   // Update MEM latch
+  assign {
+    ALU_stall_DE
+  } = stall_value; 
+  wire ALU_stall_DE;
   always @ (posedge clk) begin
     if (reset) begin
         MEM_latch <= {`MEM_latch_WIDTH{1'b0}}; 
     //TODO: part2/bonus modify as necessary
-    end else begin 
+    end else if (!ALU_stall_DE) begin 
         MEM_latch <= MEM_latch_contents;
     end    
   end

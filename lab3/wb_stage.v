@@ -8,7 +8,8 @@ module WB_STAGE(
   output wire [`from_WB_to_FE_WIDTH-1:0]  from_WB_to_FE,
   output wire [`from_WB_to_DE_WIDTH-1:0]  from_WB_to_DE,  
   output wire [`from_WB_to_AGEX_WIDTH-1:0] from_WB_to_AGEX,
-  output wire [`from_WB_to_MEM_WIDTH-1:0] from_WB_to_MEM
+  output wire [`from_WB_to_MEM_WIDTH-1:0] from_WB_to_MEM,
+  input wire                              stall_value
 );
 
   wire valid_WB;
@@ -58,6 +59,10 @@ module WB_STAGE(
 
   // this code need to be commented out when we synthesize the code later 
   // special workaround to get tests Pass/Fail status
+  assign {
+    ALU_stall_DE
+  } = stall_value; 
+  wire ALU_stall_DE;
   reg [`REGWORDS-1:0][31:0] last_WB_value /* verilator public */;
   always @(negedge clk) begin
     if (reset) begin

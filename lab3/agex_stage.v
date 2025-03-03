@@ -8,7 +8,8 @@ module AGEX_STAGE(
   input  wire [`DE_latch_WIDTH-1:0]         from_DE_latch,
   output wire [`AGEX_latch_WIDTH-1:0]       AGEX_latch_out,
   output wire [`from_AGEX_to_FE_WIDTH-1:0]  from_AGEX_to_FE,
-  output wire [`from_AGEX_to_DE_WIDTH-1:0]  from_AGEX_to_DE
+  output wire [`from_AGEX_to_DE_WIDTH-1:0]  from_AGEX_to_DE,
+  input  wire                               stall_value
 );
   //TODO: part2/bonus modify as necessary
   `UNUSED_VAR (from_MEM_to_AGEX)
@@ -150,11 +151,15 @@ module AGEX_STAGE(
   }; 
  
   // Update AGEX latch
+  assign {
+    ALU_stall_DE
+  } = stall_value; 
+  wire ALU_stall_DE;
   always @ (posedge clk) begin
     if (reset) begin
       AGEX_latch <= '0;
     //TODO: part2/bonus modify as necessary
-    end else begin
+    end else if (!ALU_stall_DE) begin
       AGEX_latch <= AGEX_latch_contents ;
     end 
   end
