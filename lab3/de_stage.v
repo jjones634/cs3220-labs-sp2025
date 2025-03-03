@@ -35,7 +35,7 @@ module DE_STAGE(
   // extracting a part of opcode 
   wire [2:0] F3_DE; 
   wire [6:0] F7_DE; 
-  wire [6:0] op_DE; 
+  wire [6:0] op_DE;
 
   assign op_DE = inst_DE[6:0];  
   assign F3_DE = inst_DE[14:12];
@@ -201,7 +201,8 @@ module DE_STAGE(
   assign {
     wr_reg_WB, 
     wregno_WB, 
-    regval_WB
+    regval_WB,
+    op_I_WB //added op WB
   } = from_WB_to_DE;  
 
   wire pipeline_stall_DE; 
@@ -390,6 +391,118 @@ module DE_STAGE(
   //forward data and control signals to FU stage; 
   //fetch status update from FU stage; 
   //Recommended states transition: load aluop --> load op1 --> load op2 --> alu processing --> store results to memory
-  //Need to handle the stalls from part2 
+  //Need to handle the stalls from part2
+  wire [`ALUDATABITS-1:0] OP3;
+  wire [`ALUCSROUTBITS-1:0] CSR_ALU_OUT;
+
+  assign {
+    OP3,
+    CSR_ALU_OUT
+  } = from_FU_to_DE;
+
+  // Signals to be sent to FU stage
+  reg [`ALUDATABITS-1:0] OP1;
+  reg [`ALUDATABITS-1:0] OP2;
+  reg [`ALUOPBITS-1:0] ALUOP;
+  reg [`ALUCSRINBITS-1:0] CSR_ALU_IN;
+
+  assign from_DE_to_FU = {
+    OP1,
+    OP2,
+    ALUOP,
+    CSR_ALU_IN
+  };
+
+  wire [`IOPBITS-1:0] op_I_WB; //added from WB using from_WB_to_DE
+
+  // Handle loading operands, ALUOP, and storing results to memory
+  typedef enum logic [2:0] {
+    LOAD_ALUOP,
+    LOAD_OP1,
+    LOAD_OP2,
+    WAIT_TILL_DONE,
+    STORE_OP3
+  } state_t;
+
+  state_t state, next_state;
+
+  // State machine for handling ALU operations
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      state <= LOAD_ALUOP;
+    end else begin
+      state <= next_state;
+    end
+  end
+  always @(posedge clk) begin
+    next_state = state;
+    CSR_ALU_IN = 3'b000;
+    /* verilator lint_off CASEINCOMPLETE */
+    case (state)
+      LOAD_ALUOP: begin
+        if (op_I_WB == `LW_I && wregno_WB == `ALUOP_REG_IDX) begin //reg 29
+          //ALUOP = rs1_val_DE[3:0]; // Load ALUOP
+          //ALUOP = reg_file[rd_DE][3:0];
+          ALUOP = regval_WB[3:0];
+          next_state = LOAD_OP1;
+        end
+      end
+      LOAD_OP1: begin
+        if (CSR_ALU_OUT[0] && op_I_WB == `LW_I && wregno_WB == `OP1_REG_IDX) begin //reg 30
+          //OP1 = rs1_val_DE; // Load OP1
+          //OP1 = reg_file[rd_DE];
+          OP1 = regval_WB;
+          CSR_ALU_IN[1] = 1; // ALU OP1 is stable
+          next_state = LOAD_OP2;
+        end
+      end
+      LOAD_OP2: begin
+        if (CSR_ALU_OUT[1] && op_I_WB == `LW_I && wregno_WB == `OP2_REG_IDX) begin //reg 31
+          //OP2 = rs1_val_DE; // Load OP2
+          //OP2 = reg_file[rd_DE];
+          OP2 = regval_WB;
+          CSR_ALU_IN[2] = 1; //OP2 is stable
+          next_state = WAIT_TILL_DONE;
+        end
+      end
+      WAIT_TILL_DONE: begin
+        if (CSR_ALU_OUT[2]) begin // Wait until ALU result is valid
+          CSR_ALU_IN[0] = 1; // ALU result is valid
+          next_state = STORE_OP3;
+        end
+      end
+      STORE_OP3: begin
+        if (op_I_DE == `SW_I && rs2_DE == `OP3_REG_IDX) begin //reg 27
+          /* verilator lint_off WIDTHEXPAND */
+          reg_file[rs2_DE + sxt_imm_DE] = OP3; // Store OP3 to memory
+          CSR_ALU_IN[0] = 0; // ALU result can be overwritten
+          next_state = LOAD_ALUOP;
+        end else if (op_I_DE == `SW_I && rs2_DE == `CSR_OUT_REG_IDX) begin //reg 26
+          reg_file[rs2_DE + sxt_imm_DE] = CSR_ALU_OUT; // Store CSR_ALU_OUT to memory
+          CSR_ALU_IN[0] = 0; // ALU result can be overwritten
+          next_state = LOAD_ALUOP;
+          /* verilator lint_off WIDTHEXPAND */
+        end
+      end
+    endcase
+  end
+
+  // Update CSR_ALU_IN based on ALU status
+  // always @(posedge clk) begin
+  //   CSR_ALU_IN = 3'b000;
+  //   if (CSR_ALU_OUT[2]) begin
+  //     CSR_ALU_IN[0] = 1; // ALU result is valid
+  //   end
+  //   if (CSR_ALU_OUT[1]) begin
+  //     CSR_ALU_IN[2] = 1; // ALU OP2 is stable
+  //   end
+  //   if (CSR_ALU_OUT[0]) begin
+  //     CSR_ALU_IN[1] = 1; // ALU OP1 is stable
+  //   end
+  //   // if (wr_reg_WB && (wregno_WB == `OP1_REG_IDX || wregno_WB == `OP2_REG_IDX)) begin
+  //   //   CSR_ALU_IN[1] = 0; // ALU OP1 is not stable if writeback happens
+  //   //   CSR_ALU_IN[2] = 0; // ALU OP2 is not stable if writeback happens
+  //   // end
+  // end 
 
 endmodule

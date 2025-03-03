@@ -42,7 +42,8 @@ module WB_STAGE(
   assign from_WB_to_DE = {
     wr_reg_WB, 
     wregno_WB, 
-    regval_WB
+    regval_WB,
+    op_I_WB
   }; 
 
   // forward signals to FE stage

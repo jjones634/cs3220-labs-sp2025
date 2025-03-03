@@ -71,7 +71,7 @@ module pipeline (
     .clk(clk),
     .reset(reset),
     .from_WB_to_MEM(from_WB_to_MEM),  
-    .from_AGEX_latch(AGEX_latch_out), 
+    .from_AGEX_latch(AGEX_latch_out),
     .MEM_latch_out(MEM_latch_out),
     .from_MEM_to_FE(from_MEM_to_FE),
     .from_MEM_to_DE(from_MEM_to_DE),
