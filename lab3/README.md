@@ -22,8 +22,8 @@ The [external ALU](external_alu_wrapper.v) has following specifications:
 * `OP1` and `OP2` are 32-bit inputs that specify the values to be used as operands for the ALU operation. (Floating point numbers in IEEE 754 format)
 * `OP3` is a 32-bit output that holds the result of the ALU operation. (Floating point numbers in IEEE 754 format)
 * `ALUOP` is a 4-bit input that specifies the ALU operation to be performed. The ALUOP values are as follows:
-    * 0001: MULT
-    * 0010: DIV
+    * 0001: DIV
+    * 0010: MULT
     <!-- * `ALUOP[3]` is a 1-bit input that specifies whether the ALU operation is signed or unsigned. If `ALUOP[3]` is 0, the operation is unsigned; if `ALUOP[3]` is 1, the operation is signed. -->
 * `CSR_ALU_OUT` (Control/Status Register) is a 3-bit input port that represents the status of the ALU operation. The `CSR_ALU_OUT` values are as follows:
     * `CSR_ALU_OUT`[0] is a 1-bit output that signals if the ALU OP1 port is READY/BUSY
@@ -34,7 +34,9 @@ The [external ALU](external_alu_wrapper.v) has following specifications:
         * 1: VALID; 0: INVALID
 * `CSR_ALU_IN` is a 3-bit output that control the status of the ALU operation. The `CSR_ALU_IN` values are as follows:
     * `CSR_ALU_IN`[0] is a 1-bit input that signals the the results can be overwritten by the ALU.
-        * After reading the output, the CPU should set `CSR_ALU_IN`[0] to 0, indicating it's safe for ALU to overwrite the results; otherwise, the ALU will stall the current operation of writing the result to OP3.
+        * When set to 1, it acknowledges the ALU that the output is received and can be overwritten in following cycles; thus the output will become unstable
+        * After reading the output, you may also want to set `CSR_ALU_IN`[0] back to 0, so you can catch the results when it's stable
+        * reference: [divider.v](divider.v#L294)
     * `CSR_ALU_IN`[1] is a 1-bit input that signals the `OP1` fed to the ALU is stable
         * If it's set to 1, the ALU will latch in the `OP1` value; otherwise, the ALU will stall the current operation and wait for `OP1` to be stable.
         * It's ignored if the ALU is not ready to accept `OP1`.
