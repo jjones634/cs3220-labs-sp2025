@@ -8,7 +8,7 @@
 
 **Bonus**: 10 pts
 
-***Submission ddl***: Mar 17th
+***Submission ddl***: Mar 14th
 
 In this lab, you will delve into the robust and scalable on-chip communication protocol, AXI4, along with its streaming variant, AXI-Stream. The objective is to design and implement FIFOs/RAMs that leverage these two protocols for content reading and writing. While the previous lab focused on a straightforward register-based communication protocol for data exchange between the CPU and ALU, it lacked the scalability and robustness required for intricate communication scenarios. Such scenarios might involve more advanced modules, like a systolic array. Building on the knowledge gained in this assignment, the subsequent lab will guide you in utilizing the FIFOs/RAMs you've crafted to interconnect components within a sophisticated heterogeneous system.
 
