@@ -17,11 +17,9 @@ In this lab, you will deploy your RISC-V processor on a Pynq board and deepen yo
 
 **Grading:**
 
-+ **Part 0: Environment Setup**: 0 points
-
 + **Part 1: Deploy your RISC-V CPU on the Pynq Board**: 70 points
 
-+ **Part 2: Read / Write though AXI Lite**: 30 points
++ **Part 2: Dispatch Instructions to Your Processor with AXI Lite**: 30 points
 
 ## Part-0: Environment Setup
 
@@ -161,7 +159,7 @@ Launch [riscv_test.ipynb](riscv_test.ipynb) within the designated Jupyter notebo
 
 *Please include a screenshot of the Jupyter notebook displaying the output in your report.* 
 
-## Dispatch Instructions to Your Processor with AXI Lite
+## Part-2: Dispatch Instructions to Your Processor with AXI Lite
 
 In Part 1, you learned to add output ports to your RISC-V processor and read values using AXI Lite. Real-world applications often require both reading outputs and sending inputs to the processor. In Part 2, you will:
 
