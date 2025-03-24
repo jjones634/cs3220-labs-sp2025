@@ -21,7 +21,7 @@ In this lab, you will deploy your RISC-V processor on a Pynq board and deepen yo
 
 + **Part 1: Deploy your RISC-V CPU on the Pynq Board**: 70 points
 
-+ **(Bonus) Part 2: Read / Write though AXI Lite**: 30 points
++ **Part 2: Read / Write though AXI Lite**: 30 points
 
 ## Part-0: Environment Setup
 
