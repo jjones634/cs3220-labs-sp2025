@@ -54,10 +54,12 @@ reg [AXIS_DATA_WIDTH+1-1:0] rd_data_reg = {AXIS_DATA_WIDTH+1{1'b0}};
 reg rd_axis_vld_reg = 1'b0, rd_axis_vld_next;
 
 // TODO: check for full status based on comparison between wr_ptr_gray_reg and rd_ptr_gray_sync2_reg
-wire full = ;
+// wire full = (wr_ptr_gray_reg == {~rd_ptr_gray_sync2_reg[ADDR_WIDTH], rd_ptr_gray_sync2_reg[ADDR_WIDTH-1:0]});
+wire full = (wr_ptr_gray_reg[ADDR_WIDTH-1] != rd_ptr_gray_sync2_reg[ADDR_WIDTH-1]) && 
+            (wr_ptr_gray_reg[ADDR_WIDTH-2:0] == rd_ptr_gray_sync2_reg[ADDR_WIDTH-2:0]);
 
 // TODO: check for empty status based on comparison between wr_ptr_gray_reg and rd_ptr_gray_sync2_reg
-wire empty = ;
+wire empty = (wr_ptr_gray_reg == rd_ptr_gray_sync2_reg);
 
 // control signals
 reg write;
@@ -65,7 +67,7 @@ reg read;
 reg store_output;
 
 // TODO: complete the logic for wr_axis_rdy
-assign wr_axis_rdy = ;
+assign wr_axis_rdy = ~full;
 
 assign rd_axis_vld = rd_axis_vld_reg;
 
@@ -77,11 +79,11 @@ always @(posedge wr_aclk) begin
     if (!wr_rstn) begin
         wr_rst_sync1_reg <= 1'b1;
         wr_rst_sync2_reg <= 1'b1;
-        wr_rst_sync3_reg <= 1'b1;
+        wr_rst_sync3_reg <= 1'b1; //idk
     end else begin
         wr_rst_sync1_reg <= 1'b0;
         wr_rst_sync2_reg <= wr_rst_sync1_reg | rd_rst_sync1_reg;
-        wr_rst_sync3_reg <= wr_rst_sync2_reg;
+        wr_rst_sync3_reg <= wr_rst_sync2_reg; //idk
     end
 end
 
@@ -89,11 +91,11 @@ always @(posedge rd_aclk) begin
     if (!rd_rstn) begin
         rd_rst_sync1_reg <= 1'b1;
         rd_rst_sync2_reg <= 1'b1;
-        rd_rst_sync3_reg <= 1'b1;
+        rd_rst_sync3_reg <= 1'b1; //idk
     end else begin
         rd_rst_sync1_reg <= 1'b0;
         rd_rst_sync2_reg <= wr_rst_sync1_reg | rd_rst_sync1_reg;
-        rd_rst_sync3_reg <= rd_rst_sync2_reg;
+        rd_rst_sync3_reg <= rd_rst_sync2_reg; //idk
     end
 end
 
@@ -107,7 +109,7 @@ always @* begin
     //TODO: complete the write logic; hint should we always execute the the following signal assignments? or is there a condition that we should check?
     
     // input data valid
-    if (~full) begin
+    if (wr_axis_vld && ~full) begin
         // not full, perform write
         write = 1'b1;
         wr_ptr_next = wr_ptr_reg + 1;
@@ -116,7 +118,7 @@ always @* begin
 end
 
 always @(posedge wr_aclk) begin
-    if (wr_rst_sync3_reg) begin
+    if (wr_rst_sync1_reg) begin //from 3 to 1
         wr_ptr_reg <= {ADDR_WIDTH+1{1'b0}};
         wr_ptr_gray_reg <= {ADDR_WIDTH+1{1'b0}};
     end else begin
@@ -133,7 +135,7 @@ end
 
 // pointer synchronization
 always @(posedge wr_aclk) begin
-    if (wr_rst_sync3_reg) begin
+    if (wr_rst_sync1_reg) begin //from 3 to 1
         rd_ptr_gray_sync1_reg <= {ADDR_WIDTH+1{1'b0}};
         rd_ptr_gray_sync2_reg <= {ADDR_WIDTH+1{1'b0}};
     end else begin
@@ -143,7 +145,7 @@ always @(posedge wr_aclk) begin
 end
 
 always @(posedge rd_aclk) begin
-    if (rd_rst_sync3_reg) begin
+    if (rd_rst_sync1_reg) begin //from 3 to 1
         wr_ptr_gray_sync1_reg <= {ADDR_WIDTH+1{1'b0}};
         wr_ptr_gray_sync2_reg <= {ADDR_WIDTH+1{1'b0}};
     end else begin
@@ -162,22 +164,21 @@ always @* begin
     mem_read_data_valid_next = mem_read_data_valid_reg;
 
     //TODO: complete the output read logic;
-
     // output data not valid OR currently being transferred
-    if (~empty) begin
-        // not empty, perform read
+    if (~empty && (!mem_read_data_valid_reg || store_output)) begin
         read = 1'b1;
         mem_read_data_valid_next = 1'b1;
         rd_ptr_next = rd_ptr_reg + 1;
         rd_ptr_gray_next = rd_ptr_next ^ (rd_ptr_next >> 1);
     end else begin
         // empty, invalidate
-        mem_read_data_valid_next = 1'b0;
+        //mem_read_data_valid_next = 1'b0;
+        mem_read_data_valid_next = mem_read_data_valid_reg;
     end
 end
 
 always @(posedge rd_aclk) begin
-    if (rd_rst_sync3_reg) begin
+    if (rd_rst_sync1_reg) begin //from 3 to 1
         rd_ptr_reg <= {ADDR_WIDTH+1{1'b0}};
         rd_ptr_gray_reg <= {ADDR_WIDTH+1{1'b0}};
         mem_read_data_valid_reg <= 1'b0;
@@ -202,12 +203,18 @@ always @* begin
 
     //TODO: complete the output register logic;
     
-    store_output = 1'b1;
-    rd_axis_vld_next = mem_read_data_valid_reg;
+    if (mem_read_data_valid_reg && rd_axis_rdy) begin
+        store_output = 1'b1; // Ready to store the output
+        rd_axis_vld_next = 1'b1; // Mark the next output valid flag as true
+    end else if (~mem_read_data_valid_reg && rd_axis_rdy) begin
+        rd_axis_vld_next = 1'b0; // Mark the next output valid flag as false
+    end else begin
+        rd_axis_vld_next = rd_axis_vld_reg; // Retain the current valid flag
+    end
 end
 
 always @(posedge rd_aclk) begin
-    if (rd_rst_sync3_reg) begin
+    if (rd_rst_sync1_reg) begin //from 3 to 1
         rd_axis_vld_reg <= 1'b0;
     end else begin
         rd_axis_vld_reg <= rd_axis_vld_next;
