@@ -1,6 +1,6 @@
 # CS3220 Lab #6 : Systolic Array Design I
 
-100 pts in total, will be rescaled into 12.85% of your final score of the course.  
+100 pts in total, will be rescaled into 13% of your final score of the course.  
 
 **Part 1: Systolic Array**: 100 pts
 
